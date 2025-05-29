@@ -35,13 +35,12 @@ jobs:
 
     - name: Install qemu
       run: sudo apt-get install qemu-system
-    
+
+    - name: Run build & test
+      run: make test
+
     - uses: actions/upload-artifact@v4
       with:
         name: image.iso
         path: hexium_os-x86_64.iso
         if-no-files-found: error
-        
-
-    - name: Run build & test
-      run: make test
