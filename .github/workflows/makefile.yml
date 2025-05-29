@@ -42,5 +42,5 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: image.iso
-        path: hexium_os-x86_64.iso
+        path: ./hexium_os-x86_64.iso
         if-no-files-found: error
