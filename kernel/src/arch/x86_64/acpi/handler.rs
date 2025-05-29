@@ -18,7 +18,7 @@
 
 use crate::arch::memory;
 use crate::trace;
-use acpi::{AcpiHandler, PhysicalMapping};
+use acpic::{AcpiHandler, PhysicalMapping};
 use core::ptr::NonNull;
 
 #[derive(Copy, Clone)]
