@@ -4,7 +4,7 @@ MAKEFLAGS += -rR
 override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval override $(1) := $(2)))
 
 $(call USER_VARIABLE,KARCH,x86_64)
-$(call USER_VARIABLE,QEMUFLAGS,-m 2G -d int -D log/interrupts.txt -M smm=off -no-reboot -no-shutdown -serial stdio -s -smp 2)
+$(call USER_VARIABLE,QEMUFLAGS,-m 2G -d int -D log/interrupts.txt -M smm=off -no-reboot -no-shutdown -serial stdio -smp 2)
 
 override IMAGE_NAME := hexium_os-$(KARCH)
 
@@ -19,6 +19,9 @@ setup:
 .PHONY: run
 run: run-$(KARCH)
 
+.PHONY: run-gdb
+run-gdb: run-$(KARCH)-gdb
+
 .PHONY: run-x86_64
 run-x86_64: ovmf/ovmf-code-$(KARCH).fd ovmf/ovmf-vars-$(KARCH).fd $(IMAGE_NAME).iso setup
 	qemu-system-$(KARCH) \
@@ -27,6 +30,16 @@ run-x86_64: ovmf/ovmf-code-$(KARCH).fd ovmf/ovmf-vars-$(KARCH).fd $(IMAGE_NAME).
 		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
 		-cdrom $(IMAGE_NAME).iso \
 		$(QEMUFLAGS)
+
+.PHONY: run-x86_64-gdb
+run-x86_64-gdb: ovmf/ovmf-code-$(KARCH).fd ovmf/ovmf-vars-$(KARCH).fd $(IMAGE_NAME).iso setup
+	qemu-system-$(KARCH) \
+		-M q35 \
+		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code-$(KARCH).fd,readonly=on \
+		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars-$(KARCH).fd \
+		-cdrom $(IMAGE_NAME).iso \
+		$(QEMUFLAGS) \
+		-s -S
 
 .PHONY: test
 test: test-iso

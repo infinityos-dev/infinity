@@ -16,16 +16,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod entry;
+use crate::{hal, info};
 
-use crate::{arch::limine::MP_REQUEST, trace};
-
-pub fn init() {
-    let mp_response = MP_REQUEST.get_response().unwrap();
-    let cpu_count = mp_response.cpus().len();
-    trace!("CPU Count: {}", cpu_count);
-
-    for cpu in mp_response.cpus() {
-        cpu.goto_address.write(entry::mp_entry);
-    }
+pub unsafe extern "C" fn mp_entry(cpu: &limine::mp::Cpu) -> ! {
+    info!("CPU entry point reached for: {:?}", cpu.id);
+    hal::halt_loop()
 }
