@@ -22,7 +22,7 @@
 #![test_runner(hexium_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-use core::panic::PanicInfo;
+use core::{panic::PanicInfo, sync::atomic::AtomicBool};
 use hexium_os::init;
 
 #[test_case]
@@ -54,17 +54,35 @@ unsafe extern "C" fn kmain() -> ! {
     loop {}
 }
 
+static DID_PANIC: AtomicBool = AtomicBool::new(false);
+
 #[cfg(not(test))]
 #[panic_handler]
 /// Handles panics in production, detergates to rsod_handler
 fn panic(info: &PanicInfo) -> ! {
-    use hexium_os::rsod::rsod_handler;
-    rsod_handler(info);
+    use core::sync::atomic::Ordering;
+
+    match DID_PANIC.compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed) {
+        Ok(_) => {
+            use hexium_os::rsod::rsod_handler;
+            rsod_handler(info);
+        }
+        Err(_) => {
+            hexium_os::hal::halt_loop();
+        }
+    }
 }
 
 #[cfg(test)]
 #[panic_handler]
 /// Handles panics during binary tests, delegates to test_panic_handler
 fn panic(info: &PanicInfo) -> ! {
-    hexium_os::test_panic_handler(info)
+    use core::sync::atomic::Ordering;
+
+    match DID_PANIC.compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed) {
+        Ok(_) => hexium_os::test_panic_handler(info),
+        Err(_) => {
+            hexium_os::hal::halt_loop();
+        }
+    }
 }
