@@ -16,19 +16,4 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod acpi;
-pub mod clock;
-pub mod debug;
-pub mod interrupts;
-pub mod limine;
-pub mod memory;
-pub mod registers;
-pub mod smp;
-
-pub fn init() {
-    assert!(limine::BASE_REVISION.is_supported());
-    crate::writer::init();
-    interrupts::init();
-    memory::init();
-    smp::init();
-}
+pub mod handler;

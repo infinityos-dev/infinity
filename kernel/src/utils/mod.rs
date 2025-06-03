@@ -16,7 +16,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod cut_range;
 pub mod types;
 
 pub fn octal_to_binrary(s: &[u8]) -> i32 {

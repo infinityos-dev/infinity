@@ -20,8 +20,6 @@ pc-keyboard = "0.7.0"
 x86_64c = { package = "x86_64", version = "0.14.2" }
 uart_16550 = "0.3.2"
 acpic = { package = "acpi", version = "5.2.0" }
-heapless = "0.8.0"
-raw-cpuid = "11.5.0"
 
 [[test]]
 name = "should_panic"

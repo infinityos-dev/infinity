@@ -1,98 +1,77 @@
-use core::ops::RangeInclusive;
+/*
+ * This file is part of Hexium OS.
+ * Copyright (C) 2025 The Hexium OS Authors – see the AUTHORS file.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
-use limine::{memory_map::EntryType, response::MemoryMapResponse};
+use core::ops::Range;
+
+use limine::{
+    memory_map::{Entry, EntryType},
+    response::MemoryMapResponse,
+};
 use x86_64c::{
     PhysAddr,
-    structures::paging::{FrameAllocator, PageSize, PhysFrame, Size4KiB},
+    structures::paging::{FrameAllocator, PhysFrame, Size4KiB},
 };
 
-use crate::utils::cut_range::CutRange;
+/// A FrameAllocator that always returns `None`.
+pub struct EmptyFrameAllocator;
 
-pub struct InitialUsableFramesIterator {
-    reserved_range: RangeInclusive<u64>,
-    allocated_frames: u64,
-    memory_map: &'static MemoryMapResponse,
+unsafe impl FrameAllocator<Size4KiB> for EmptyFrameAllocator {
+    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+        None
+    }
 }
 
-impl InitialUsableFramesIterator {
-    pub fn new(
-        memory_map: &'static MemoryMapResponse,
-        reserved_range: RangeInclusive<u64>,
-    ) -> Self {
-        Self {
-            reserved_range,
-            allocated_frames: 0,
+/// A FrameAllocator that returns usable frames from the bootloader's memory map.
+pub struct CoreFrameAllocator {
+    memory_map: &'static MemoryMapResponse,
+    next: usize,
+}
+
+impl CoreFrameAllocator {
+    /// Create a FrameAllocator from the passed memory map.
+    pub unsafe fn init(memory_map: &'static MemoryMapResponse) -> Self {
+        CoreFrameAllocator {
             memory_map,
+            next: 0,
         }
     }
 
-    pub fn allocated_frames(&self) -> u64 {
-        self.allocated_frames
+    /// Returns an iterator over the usable frames specified in the memory map.
+    pub fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
+        // get usable regions from memory map
+        let regions: &[&Entry] = self.memory_map.entries();
+        let usable_regions = regions
+            .into_iter()
+            .filter(|r: &&&Entry| r.entry_type == EntryType::USABLE);
+        // map each region to its address range
+        let addr_ranges = usable_regions.map(|r: &&Entry| r.base..(r.base + r.length));
+        // transform to an iterator of frame start addresses
+        let frame_addresses = addr_ranges.flat_map(|r: Range<u64>| r.step_by(4096));
+        // create `PhysFrame` types from the start addresses
+        frame_addresses.map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)))
     }
 }
 
-impl Iterator for InitialUsableFramesIterator {
-    type Item = PhysFrame<Size4KiB>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut skipped_frames = 0;
-        let frame_start = self
-            .memory_map
-            .entries()
-            .iter()
-            .filter_map(|entry| {
-                if entry.entry_type == EntryType::USABLE {
-                    Some(entry.base..=entry.base + (entry.length - 1))
-                } else {
-                    None
-                }
-            })
-            .flat_map(|range| range.cut(&self.reserved_range))
-            .find_map(|entry| {
-                let first_frame_start = entry.start().next_multiple_of(Size4KiB::SIZE);
-                let full_frames = (entry.end() - first_frame_start + 1) / Size4KiB::SIZE;
-                let frames_left_to_skip = self.allocated_frames - skipped_frames;
-                let frames_skipped_in_this_entry = frames_left_to_skip.min(full_frames);
-                skipped_frames += frames_skipped_in_this_entry;
-                if frames_skipped_in_this_entry < full_frames {
-                    Some(first_frame_start + frames_skipped_in_this_entry * Size4KiB::SIZE)
-                } else {
-                    None
-                }
-            })?;
-        self.allocated_frames += 1;
-        Some(PhysFrame::from_start_address(PhysAddr::new(frame_start)).unwrap())
-    }
-}
-
-pub struct InitialFrameAllocator {
-    iterator: InitialUsableFramesIterator,
-    memory_map: &'static MemoryMapResponse,
-    reserved_range: RangeInclusive<u64>,
-}
-
-impl InitialFrameAllocator {
-    /// Must not accidentally create two of these, because that will allocate the same frames
-    pub unsafe fn new(
-        memory_map: &'static MemoryMapResponse,
-        reserved_range: RangeInclusive<u64>,
-    ) -> Self {
-        Self {
-            iterator: InitialUsableFramesIterator::new(memory_map, reserved_range.clone()),
-            memory_map,
-            reserved_range,
-        }
-    }
-
-    /// Finish using this as a frame allocator, and get an iterator of allocated frames so that you can mark them as used
-    pub fn finish(self) -> impl Iterator<Item = PhysFrame<Size4KiB>> {
-        InitialUsableFramesIterator::new(self.memory_map, self.reserved_range)
-            .take(self.iterator.allocated_frames() as usize)
-    }
-}
-
-unsafe impl FrameAllocator<Size4KiB> for InitialFrameAllocator {
-    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
-        self.iterator.next()
+unsafe impl FrameAllocator<Size4KiB> for CoreFrameAllocator {
+    /// Returns the next usable frame, or `None` if exhausted.
+    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+        let frame = self.usable_frames().nth(self.next);
+        self.next += 1;
+        frame
     }
 }
