@@ -20,6 +20,7 @@ pc-keyboard = "0.7.0"
 x86_64c = { package = "x86_64", version = "0.14.2" }
 uart_16550 = "0.3.2"
 acpic = { package = "acpi", version = "5.2.0" }
+talc = "4.4.2"
 
 [[test]]
 name = "should_panic"

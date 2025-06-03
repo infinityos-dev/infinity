@@ -123,6 +123,7 @@ dependencies = [
  "linked_list_allocator",
  "pc-keyboard",
  "spin",
+ "talc",
  "uart_16550",
  "x86_64",
 ]
@@ -229,6 +230,15 @@ name = "spinning_top"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b9eb1a2f4c41445a3a0ff9abc5221c5fcd28e1f13cd7c0397706f9ac938ddb0"
+dependencies = [
+ "lock_api",
+]
+
+[[package]]
+name = "talc"
+version = "4.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fcad3be1cfe36eb7d716a04791eba36a197da9d9b6ea1e28e64ac569da3701d"
 dependencies = [
  "lock_api",
 ]
