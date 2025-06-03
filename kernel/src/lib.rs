@@ -54,7 +54,7 @@ pub fn init() {
     //}
 }
 
-fn print_startup_message(vfs: &hal::vfs::Vfs) {
+fn _print_startup_message(vfs: &hal::vfs::Vfs) {
     let file: hal::vfs::Vnode = match vfs.lookuppn("/ramdisk/welcome.txt") {
         Ok(file) => file,
         Err(err) => {
