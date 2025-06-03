@@ -41,10 +41,10 @@ pub mod writer;
 pub fn init() {
     hal::init();
 
-    let mut vfs = hal::vfs::Vfs::new();
-    fs::ramfs::init(&vfs);
-
-    print_startup_message(&mut vfs);
+    //let mut vfs = hal::vfs::Vfs::new();
+    //fs::ramfs::init(&vfs);
+    //
+    //print_startup_message(&mut vfs);
 
     // Issue#30: Commented out for now as the code doesn't run past this section. Will return it back.
     //{

@@ -31,8 +31,8 @@ lazy_static! {
                 .set_handler_fn(double_fault_handler)
                 .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
         }
-        idt.page_fault
-            .set_handler_fn(super::super::memory::vmm::page_fault_handler);
+        //idt.page_fault
+        //    .set_handler_fn(super::super::memory::vmm::page_fault_handler);
         //FIXME: Need to unmask the interrupts for it to work
         idt[InterruptIndex::Timer.as_usize()]
             .set_handler_fn(super::super::clock::pit::interrupt_handler);
