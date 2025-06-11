@@ -30,7 +30,7 @@ all:
 
 test:
 	mkdir -p kernel-test
-	RUSTFLAGS="-C relocation-model=static" cargo test --no-run --target $(RUST_TARGET) --profile $(RUST_PROFILE) --color always \
+	RUSTFLAGS="-C relocation-model=static" cargo test --no-run --features testing --target $(RUST_TARGET) --profile $(RUST_PROFILE) --color always \
 		2>&1 | tee .test-log.txt
 	@grep -o 'target/[^ )]*' .test-log.txt | while read -r path; do \
 		if [ -x "$$path" ]; then \
