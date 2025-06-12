@@ -21,8 +21,16 @@ use limine::response::MemoryMapResponse;
 
 pub mod alloc;
 pub mod hhdm;
+pub mod pmm;
+pub mod vmm;
 
 pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: hhdm::HhdmOffset) {
-    self::alloc::init(memory_map, hhdm_offset);
+    let global_allocator_physical_start: u64 = self::alloc::init(memory_map, hhdm_offset);
+    let physical_memory: pmm::PhysicalMemory = pmm::init(
+        memory_map,
+        global_allocator_physical_start,
+        self::alloc::GLOBAL_ALLOCATOR_SIZE,
+    );
+    vmm::init(physical_memory, hhdm_offset, memory_map);
     trace!("Memory initialized");
 }

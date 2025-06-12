@@ -3,13 +3,13 @@ use core::{mem::MaybeUninit, slice};
 use limine::{memory_map::EntryType, response::MemoryMapResponse};
 use talc::{ErrOnOom, Talc, Talck};
 
-const GLOBAL_ALLOCATOR_SIZE: u64 = 4 * 0x400 * 0x400; // 4 MiB
+pub const GLOBAL_ALLOCATOR_SIZE: u64 = 4 * 0x400 * 0x400; // 4 MiB
 
 // This tells Rust that global allocations will use this static variable's allocation functions
 #[global_allocator]
 static GLOBAL_ALLOCATOR: Talck<spin::Mutex<()>, ErrOnOom> = Talck::new(Talc::new(ErrOnOom));
 
-pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: super::hhdm::HhdmOffset) {
+pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: super::hhdm::HhdmOffset) -> u64 {
     let global_allocator_physical_start = memory_map
         .entries()
         .iter()
@@ -26,7 +26,12 @@ pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: super::hhdm::Hh
         )
     };
 
-    let mut talc = GLOBAL_ALLOCATOR.lock();
-    let span = global_allocator_mem.into();
-    unsafe { talc.claim(span) }.unwrap();
+    {
+        let mut talc = GLOBAL_ALLOCATOR.lock();
+        let span = global_allocator_mem.into();
+        // Safety: We got the span from valid memory
+        unsafe { talc.claim(span) }.unwrap();
+    }
+
+    global_allocator_physical_start
 }
