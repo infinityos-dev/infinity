@@ -77,7 +77,7 @@ fn init_with_page_size<S: PageSize + Debug>(
     memory_map: &'static MemoryMapResponse,
     hhdm_offset: HhdmOffset,
     mut new_offset_page_table: OffsetPageTable<'_>,
-    mut physical_memory: &mut super::pmm::PhysicalMemory,
+    physical_memory: &mut super::pmm::PhysicalMemory,
 ) where
     for<'a> OffsetPageTable<'a>: Mapper<S>,
 {
