@@ -2,6 +2,7 @@ use crate::{arch::memory::hhdm::HhdmOffset, trace};
 use core::fmt::Debug;
 use core::mem::MaybeUninit;
 use limine::{memory_map::EntryType, response::MemoryMapResponse};
+use nodit::{Interval, NoditSet, interval::iu};
 use raw_cpuid::CpuId;
 use x86_64c::{
     PhysAddr, VirtAddr,
@@ -44,6 +45,7 @@ pub fn init(
             hhdm_offset,
             new_offset_page_table,
             &mut physical_memory,
+            new_l4_frame,
         );
     } else {
         init_with_page_size::<Size2MiB>(
@@ -51,6 +53,7 @@ pub fn init(
             hhdm_offset,
             new_offset_page_table,
             &mut physical_memory,
+            new_l4_frame,
         );
     }
 
@@ -78,7 +81,9 @@ fn init_with_page_size<S: PageSize + Debug>(
     hhdm_offset: HhdmOffset,
     mut new_offset_page_table: OffsetPageTable<'_>,
     physical_memory: &mut super::pmm::PhysicalMemory,
-) where
+    new_l4_frame: PhysFrame<Size4KiB>,
+) -> VirtualMemory
+where
     for<'a> OffsetPageTable<'a>: Mapper<S>,
 {
     // Offset map everything that is currently offset mapped
@@ -136,4 +141,39 @@ fn init_with_page_size<S: PageSize + Debug>(
             }
         }
     }
+
+    return VirtualMemory {
+        set: {
+            // Now let's keep track of the used virtual memory
+            let mut set = NoditSet::default();
+            // Let's add all of the offset mapped regions, keeping in mind we used 1 GiB pages
+            for entry in memory_map.entries() {
+                if [
+                    EntryType::USABLE,
+                    EntryType::BOOTLOADER_RECLAIMABLE,
+                    EntryType::EXECUTABLE_AND_MODULES,
+                    EntryType::FRAMEBUFFER,
+                ]
+                .contains(&entry.entry_type)
+                {
+                    let start = u64::from(hhdm_offset) + entry.base / S::SIZE * S::SIZE;
+                    let end = u64::from(hhdm_offset)
+                        + (entry.base + (entry.length - 1)) / S::SIZE * S::SIZE
+                        + (S::SIZE - 1);
+                    set.insert_merge_touching_or_overlapping((start..=end).into());
+                }
+            }
+            // Let's add the top 512 GiB
+            set.insert_merge_touching(iu(0xFFFFFF8000000000)).unwrap();
+            set
+        },
+        cr3: new_l4_frame,
+        hhdm_offset,
+    };
+}
+
+pub struct VirtualMemory {
+    pub(super) set: NoditSet<u64, Interval<u64>>,
+    pub(super) cr3: PhysFrame<Size4KiB>,
+    pub(super) hhdm_offset: HhdmOffset,
 }
