@@ -13,11 +13,17 @@ use x86_64c::{
     },
 };
 
+pub struct VmmInitReturn {
+    pub virtual_memory: VirtualMemory,
+    pub new_l4_frame: PhysFrame<Size4KiB>,
+    pub cr3_flags: x86_64c::registers::control::Cr3Flags,
+}
+
 pub fn init(
     mut physical_memory: super::pmm::PhysicalMemory,
     hhdm_offset: HhdmOffset,
     memory_map: &'static MemoryMapResponse,
-) {
+) -> VmmInitReturn {
     let new_l4_frame = FrameAllocator::<Size4KiB>::allocate_frame(&mut physical_memory).unwrap();
     // Safety: The allocated frame is in usable memory, which is offset mapped
     let new_l4_page_table =
@@ -35,7 +41,7 @@ pub fn init(
     let new_offset_page_table: OffsetPageTable<'_> =
         unsafe { OffsetPageTable::new(new_l4_page_table, VirtAddr::new(hhdm_offset.into())) };
 
-    if CpuId::new()
+    let virtual_memory = if CpuId::new()
         .get_extended_processor_and_feature_identifiers()
         .unwrap()
         .has_1gib_pages()
@@ -46,7 +52,7 @@ pub fn init(
             new_offset_page_table,
             &mut physical_memory,
             new_l4_frame,
-        );
+        )
     } else {
         init_with_page_size::<Size2MiB>(
             memory_map,
@@ -54,8 +60,8 @@ pub fn init(
             new_offset_page_table,
             &mut physical_memory,
             new_l4_frame,
-        );
-    }
+        )
+    };
 
     // We must map the kernel, which lies in the top 2 GiB of virtual memory
     // We can just reuse Limine's mappings for the top 512 GiB
@@ -74,6 +80,12 @@ pub fn init(
         "Virtual memory manager initialized with new L4 page table at {:?}",
         new_l4_frame.start_address()
     );
+
+    return VmmInitReturn {
+        virtual_memory: virtual_memory,
+        new_l4_frame: new_l4_frame,
+        cr3_flags: cr3_flags,
+    };
 }
 
 fn init_with_page_size<S: PageSize + Debug>(
@@ -172,6 +184,7 @@ where
     };
 }
 
+#[allow(dead_code)]
 pub struct VirtualMemory {
     pub(super) set: NoditSet<u64, Interval<u64>>,
     pub(super) cr3: PhysFrame<Size4KiB>,

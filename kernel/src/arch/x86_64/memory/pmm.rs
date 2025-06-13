@@ -20,6 +20,7 @@ pub enum MemoryType {
     UsedByKernel(KernelMemoryUsageType),
 }
 
+#[derive(Clone)]
 pub struct PhysicalMemory {
     pub(super) map: NoditMap<u64, Interval<u64>, MemoryType>,
 }
