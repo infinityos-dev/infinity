@@ -17,8 +17,13 @@
  */
 
 use crate::{hal, info};
+use x86_64c::registers::control::Cr3;
 
 pub unsafe extern "C" fn mp_entry(cpu: &limine::mp::Cpu) -> ! {
     info!("CPU entry point reached for: {:?}", cpu.id);
+    let memory = crate::arch::memory::MEMORY.get().unwrap();
+    unsafe {
+        Cr3::write(memory.new_kernel_cr3, memory.new_kernel_cr3_flags);
+    }
     hal::halt_loop()
 }
