@@ -49,8 +49,7 @@ pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: hhdm::HhdmOffse
         global_allocator_physical_start,
         self::alloc::GLOBAL_ALLOCATOR_SIZE,
     );
-    let physical_memory_for_vmm = physical_memory.clone();
-    let vmm_return = vmm::init(physical_memory_for_vmm, hhdm_offset, memory_map);
+    let vmm_return = vmm::init(physical_memory.clone(), hhdm_offset, memory_map);
     MEMORY.call_once(|| Memory {
         physical_memory: Mutex::new(physical_memory),
         virtual_memory: Mutex::new(vmm_return.virtual_memory),
