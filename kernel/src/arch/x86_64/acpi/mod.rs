@@ -9,7 +9,6 @@ pub mod handler;
 
 pub fn init() {
     let rsdp = RSDP_REQUEST.get_response().unwrap();
-    // Safety: We're not sending this across CPUs
     let acpi_tables = unsafe { get_acpi_tables(rsdp) }
         .headers()
         .map(|header| header.signature)
@@ -20,6 +19,6 @@ pub fn init() {
 /// # Safety
 /// You can store the returned value in CPU local data, but you cannot send it across CPUs because the other CPUs did not flush their cache for changes in page tables
 pub unsafe fn get_acpi_tables(rsdp: &RsdpResponse) -> AcpiTables<impl AcpiHandler> {
-    let address = rsdp.address();
+    let address: usize = rsdp.address();
     unsafe { AcpiTables::from_rsdp(KernelAcpiHandler {}, address) }.unwrap()
 }
