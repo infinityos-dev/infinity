@@ -1,21 +1,25 @@
-use crate::arch::memory::hhdm::HhdmOffset;
-use acpic::AcpiHandler;
+use acpic::{AcpiHandler, AcpiTables};
+use alloc::boxed::Box;
+use handler::KernelAcpiHandler;
+use limine::response::RsdpResponse;
 
-#[derive(Debug, Clone)]
-struct KernelAcpiHandler {
-    _hhdm_offset: HhdmOffset,
+use crate::{arch::limine::RSDP_REQUEST, trace};
+
+pub mod handler;
+
+pub fn init() {
+    let rsdp = RSDP_REQUEST.get_response().unwrap();
+    // Safety: We're not sending this across CPUs
+    let acpi_tables = unsafe { get_acpi_tables(rsdp) }
+        .headers()
+        .map(|header| header.signature)
+        .collect::<Box<[_]>>();
+    trace!("ACPI Tables: {acpi_tables:?}");
 }
 
-impl AcpiHandler for KernelAcpiHandler {
-    unsafe fn map_physical_region<T>(
-        &self,
-        _physical_address: usize,
-        _size: usize,
-    ) -> acpic::PhysicalMapping<Self, T> {
-        todo!()
-    }
-
-    fn unmap_physical_region<T>(_region: &acpic::PhysicalMapping<Self, T>) {
-        todo!()
-    }
+/// # Safety
+/// You can store the returned value in CPU local data, but you cannot send it across CPUs because the other CPUs did not flush their cache for changes in page tables
+pub unsafe fn get_acpi_tables(rsdp: &RsdpResponse) -> AcpiTables<impl AcpiHandler> {
+    let address = rsdp.address();
+    unsafe { AcpiTables::from_rsdp(KernelAcpiHandler {}, address) }.unwrap()
 }

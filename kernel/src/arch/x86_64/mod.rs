@@ -34,4 +34,5 @@ pub fn init() {
         limine::HHDM_REQUEST.get_response().unwrap().into(),
     );
     smp::init();
+    acpi::init();
 }
