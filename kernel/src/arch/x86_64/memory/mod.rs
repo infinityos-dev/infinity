@@ -16,26 +16,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::trace;
+use crate::{arch::memory::hhdm::HhdmOffset, trace};
+use limine::response::MemoryMapResponse;
 
-use alloc::alloc::{GlobalAlloc, Layout};
-use core::ptr::null_mut;
+pub mod alloc;
+pub mod hhdm;
 
-pub struct Dummy;
-
-#[global_allocator]
-static ALLOCATOR: Dummy = Dummy;
-
-unsafe impl GlobalAlloc for Dummy {
-    unsafe fn alloc(&self, _layout: Layout) -> *mut u8 {
-        null_mut()
-    }
-
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        panic!("dealloc should be never called")
-    }
-}
-
-pub fn init() {
+pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: HhdmOffset) {
+    self::alloc::init(memory_map, hhdm_offset);
+    trace!("Hhdm Offset: {:#?}", hhdm_offset);
     trace!("Memory initialized");
 }
