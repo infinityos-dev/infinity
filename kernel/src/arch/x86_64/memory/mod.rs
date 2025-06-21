@@ -23,7 +23,7 @@ pub mod alloc;
 pub mod hhdm;
 
 pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: HhdmOffset) {
-    self::alloc::init(memory_map, hhdm_offset);
     trace!("Hhdm Offset: {:#?}", hhdm_offset);
+    self::alloc::init(memory_map, hhdm_offset);
     trace!("Memory initialized");
 }
