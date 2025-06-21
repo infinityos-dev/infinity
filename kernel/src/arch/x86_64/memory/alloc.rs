@@ -8,7 +8,7 @@ static GLOBAL_ALLOCATOR: Talck<spin::Mutex<()>, ErrOnOom> = Talck::new(Talc::new
 
 pub const GLOBAL_ALLOCATOR_SIZE: u64 = 2 * 1024 * 1024;
 
-pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: HhdmOffset) {
+pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: HhdmOffset) -> u64 {
     let allocator_physical_start = memory_map
         .entries()
         .iter()
@@ -36,4 +36,6 @@ pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: HhdmOffset) {
         allocator_physical_start + hhdm_offset
     );
     trace!("Talck allocator size:\t\t0x{:x}", GLOBAL_ALLOCATOR_SIZE);
+
+    allocator_physical_start
 }
