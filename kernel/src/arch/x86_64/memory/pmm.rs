@@ -45,6 +45,7 @@ impl From<EntryType> for MemoryUsage {
     }
 }
 
+#[derive(Clone)]
 pub struct PhysicalMemory {
     pub map: NoditMap<u64, Interval<u64>, MemoryUsage>,
 }

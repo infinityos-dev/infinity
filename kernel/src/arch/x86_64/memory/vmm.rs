@@ -20,16 +20,16 @@ pub struct VirtualMemory {
 }
 
 pub struct VmmReturn {
-    virt_mem: VirtualMemory,
-    new_cr3: PhysFrame<Size4KiB>,
-    new_cr3_flags: Cr3Flags,
+    pub virt_mem: VirtualMemory,
+    pub new_cr3: PhysFrame<Size4KiB>,
+    pub new_cr3_flags: Cr3Flags,
 }
 
 pub fn init(
     mut physical_memory: PhysicalMemory,
     hhdm_offset: HhdmOffset,
     memory_map: &'static MemoryMapResponse,
-) {
+) -> VmmReturn {
     let new_l4_frame = FrameAllocator::<Size4KiB>::allocate_frame(&mut physical_memory).unwrap();
     let new_l4_page_table =
         VirtAddr::new(u64::from(hhdm_offset) + new_l4_frame.start_address().as_u64())
@@ -46,12 +46,14 @@ pub fn init(
     let mut new_offset_page_table =
         unsafe { OffsetPageTable::new(new_l4_page_table, VirtAddr::new(hhdm_offset.into())) };
 
+    let mut vmm_return: VirtualMemory;
+
     if CpuId::new()
         .get_extended_processor_and_feature_identifiers()
         .unwrap()
         .has_1gib_pages()
     {
-        init_with_page_size::<Size1GiB>(
+        vmm_return = init_with_page_size::<Size1GiB>(
             memory_map,
             hhdm_offset,
             new_offset_page_table,
@@ -59,7 +61,7 @@ pub fn init(
             new_l4_frame,
         );
     } else {
-        init_with_page_size::<Size2MiB>(
+        vmm_return = init_with_page_size::<Size2MiB>(
             memory_map,
             hhdm_offset,
             new_offset_page_table,
@@ -80,6 +82,12 @@ pub fn init(
     new_l4_page_table[511].clone_from(&current_l4_page_table[511]);
 
     unsafe { Cr3::write(new_l4_frame, cr3_flags) };
+
+    VmmReturn {
+        virt_mem: vmm_return,
+        new_cr3: new_l4_frame,
+        new_cr3_flags: cr3_flags,
+    }
 }
 
 fn init_with_page_size<S: PageSize + Debug>(
@@ -88,7 +96,8 @@ fn init_with_page_size<S: PageSize + Debug>(
     mut new_offset_page_table: OffsetPageTable,
     mut physical_memory: PhysicalMemory,
     new_l4_frame: PhysFrame,
-) where
+) -> VirtualMemory
+where
     for<'a> OffsetPageTable<'a>: Mapper<S>,
 {
     let mut last_mapped_address = None::<PhysAddr>;
@@ -145,7 +154,7 @@ fn init_with_page_size<S: PageSize + Debug>(
         }
     }
 
-    let virt_mem_return = VirtualMemory {
+    VirtualMemory {
         set: {
             // Now let's keep track of the used virtual memory
             let mut set = NoditSet::default();
@@ -172,5 +181,5 @@ fn init_with_page_size<S: PageSize + Debug>(
         },
         cr3: new_l4_frame,
         hhdm_offset,
-    };
+    }
 }

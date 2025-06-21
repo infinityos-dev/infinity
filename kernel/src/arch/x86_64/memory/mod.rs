@@ -21,7 +21,7 @@ use crate::{
     trace,
 };
 use limine::response::MemoryMapResponse;
-use spin::Mutex;
+use spin::{Mutex, Once};
 use x86_64c::{
     registers::control::Cr3Flags,
     structures::paging::{PhysFrame, Size4KiB},
@@ -31,6 +31,8 @@ pub mod alloc;
 pub mod hhdm;
 pub mod pmm;
 pub mod vmm;
+
+pub static MEMORY: Once<Memory> = Once::new();
 
 #[non_exhaustive]
 pub struct Memory {
@@ -44,14 +46,14 @@ pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: HhdmOffset) {
     trace!("Hhdm Offset: {:#?}", hhdm_offset);
     let global_allocator_physical_start: u64 = self::alloc::init(memory_map, hhdm_offset);
     let physical_memory = self::pmm::init(memory_map, global_allocator_physical_start);
-    let virtual_memory = self::vmm::init(physical_memory, hhdm_offset, memory_map);
+    let virtual_memory = self::vmm::init(physical_memory.clone(), hhdm_offset, memory_map);
 
-    //MEMORY.call_once(|| Memory {
-    //    physical_memory: Mutex::new(physical_memory),
-    //    virtual_memory: Mutex::new(virtual_memory),
-    //    new_kernel_cr3: new_l4_frame,
-    //    new_kernel_cr3_flags: cr3_flags,
-    //});
+    MEMORY.call_once(|| Memory {
+        physical_memory: Mutex::new(physical_memory),
+        virtual_memory: Mutex::new(virtual_memory.virt_mem),
+        new_kernel_cr3: virtual_memory.new_cr3,
+        new_kernel_cr3_flags: virtual_memory.new_cr3_flags,
+    });
 
     trace!("Memory initialized");
 }
