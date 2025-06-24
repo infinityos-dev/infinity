@@ -16,6 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub mod acpi;
 pub mod clock;
 pub mod debug;
 pub mod interrupts;
@@ -33,4 +34,5 @@ pub fn init() {
         limine::HHDM_REQUEST.get_response().unwrap().into(),
     );
     smp::init();
+    acpi::init();
 }
