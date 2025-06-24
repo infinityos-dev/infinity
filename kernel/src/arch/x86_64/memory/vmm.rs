@@ -1,9 +1,14 @@
-use crate::arch::memory::{hhdm::HhdmOffset, pmm::PhysicalMemory};
+use crate::{
+    arch::memory::{hhdm::HhdmOffset, pmm::PhysicalMemory},
+    error,
+};
 use core::fmt::Debug;
 use core::mem::MaybeUninit;
 use limine::{memory_map::EntryType, response::MemoryMapResponse};
 use nodit::{Interval, NoditSet, interval::iu};
 use raw_cpuid::CpuId;
+use x86_64c::structures::idt::InterruptStackFrame;
+use x86_64c::structures::idt::PageFaultErrorCode;
 use x86_64c::{
     PhysAddr, VirtAddr,
     registers::control::{Cr3, Cr3Flags},
@@ -182,4 +187,16 @@ where
         cr3: new_l4_frame,
         hhdm_offset,
     }
+}
+
+pub extern "x86-interrupt" fn page_fault_handler(
+    stack_frame: InterruptStackFrame,
+    error_code: PageFaultErrorCode,
+) {
+    use x86_64c::registers::control::Cr2;
+
+    error!("EXCEPTION: PAGE FAULT");
+    error!("Accessed Address: {:?}", Cr2::read());
+    error!("Error Code: {:?}\n{:#?}\n", error_code, stack_frame);
+    crate::hal::halt_loop();
 }
