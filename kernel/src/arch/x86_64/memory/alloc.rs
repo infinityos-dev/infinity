@@ -15,8 +15,11 @@ pub fn init(memory_map: &'static MemoryMapResponse, hhdm_offset: HhdmOffset) -> 
         .find(|entry| {
             entry.entry_type == EntryType::USABLE && entry.length >= GLOBAL_ALLOCATOR_SIZE
         })
-        .unwrap()
-        .base;
+        .map(|entry| entry.base)
+        .ok_or_else(|| {
+            panic!("Failed to initialize allocator: no suitable memory region found.");
+        })
+        .unwrap();
 
     let allocator_memory = unsafe {
         slice::from_raw_parts_mut::<MaybeUninit<u8>>(

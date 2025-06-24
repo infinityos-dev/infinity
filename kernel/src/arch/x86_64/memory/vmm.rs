@@ -43,10 +43,10 @@ pub fn init(
             .write(Default::default())
     };
 
-    let mut new_offset_page_table =
+    let new_offset_page_table =
         unsafe { OffsetPageTable::new(new_l4_page_table, VirtAddr::new(hhdm_offset.into())) };
 
-    let mut vmm_return: VirtualMemory;
+    let vmm_return: VirtualMemory;
 
     if CpuId::new()
         .get_extended_processor_and_feature_identifiers()
