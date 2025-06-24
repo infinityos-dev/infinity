@@ -26,7 +26,7 @@
 
 extern crate alloc;
 
-use alloc::{string::String, vec::Vec};
+use alloc::string::String;
 use core::panic::PanicInfo;
 
 pub mod arch;
