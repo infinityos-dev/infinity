@@ -16,6 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub mod apic;
 pub mod gdt;
 pub mod idt;
 pub mod pic;
