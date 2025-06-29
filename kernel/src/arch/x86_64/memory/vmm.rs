@@ -1,6 +1,6 @@
 use crate::{
     arch::memory::{hhdm::HhdmOffset, pmm::PhysicalMemory},
-    error,
+    error, trace,
 };
 use core::mem::MaybeUninit;
 use core::{fmt::Debug, ops::RangeInclusive};
@@ -58,6 +58,7 @@ pub fn init(
         .unwrap()
         .has_1gib_pages()
     {
+        trace!("1 GiB pages are supported");
         vmm_return = init_with_page_size::<Size1GiB>(
             memory_map,
             hhdm_offset,
@@ -66,6 +67,7 @@ pub fn init(
             new_l4_frame,
         );
     } else {
+        trace!("2 MiB pages are supported");
         vmm_return = init_with_page_size::<Size2MiB>(
             memory_map,
             hhdm_offset,

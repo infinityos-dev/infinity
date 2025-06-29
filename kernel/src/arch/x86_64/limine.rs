@@ -18,6 +18,7 @@
 
 use limine::BaseRevision;
 use limine::modules::InternalModule;
+use limine::request::FirmwareTypeRequest;
 use limine::request::{
     FramebufferRequest, HhdmRequest, MemoryMapRequest, ModuleRequest, MpRequest, RequestsEndMarker,
     RequestsStartMarker, RsdpRequest,
@@ -46,6 +47,10 @@ pub static MP_REQUEST: MpRequest = MpRequest::new();
 #[used]
 #[unsafe(link_section = ".requests")]
 pub static RSDP_REQUEST: RsdpRequest = RsdpRequest::new();
+
+#[used]
+#[unsafe(link_section = ".requests")]
+pub static FIRMWARE_TYPE_REQUEST: FirmwareTypeRequest = FirmwareTypeRequest::new();
 
 #[used]
 #[unsafe(link_section = ".requests")]

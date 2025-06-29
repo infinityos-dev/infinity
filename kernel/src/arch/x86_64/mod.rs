@@ -19,6 +19,7 @@
 pub mod acpi;
 pub mod clock;
 pub mod debug;
+pub mod firmware;
 pub mod interrupts;
 pub mod limine;
 pub mod memory;
@@ -33,6 +34,7 @@ pub fn init() {
         &limine::MEMMAP_REQUEST.get_response().unwrap(),
         limine::HHDM_REQUEST.get_response().unwrap().into(),
     );
+    firmware::init();
     smp::init();
     acpi::init();
 }
